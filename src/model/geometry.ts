@@ -86,6 +86,45 @@ export function inclusionFillFraction(inclusion: Inclusion, lattice: Lattice2D):
   return area > 0 ? inclusionArea(inclusion) / area : 0;
 }
 
+export function resizeInclusionToFillFraction(inclusion: Inclusion, lattice: Lattice2D, filFrac: number): Inclusion {
+  const targetArea = cellArea(lattice) * Math.max(0, filFrac);
+  const currentArea = inclusionArea(inclusion);
+  if (!(targetArea > 0)) return { ...inclusion, fil_frac: 0 };
+
+  if (inclusion.shape === "circle") {
+    return { ...inclusion, radius: Math.sqrt(targetArea / Math.PI), fil_frac: filFrac };
+  }
+
+  const ratioScale = currentArea > 0 ? Math.sqrt(targetArea / currentArea) : 1;
+
+  if (inclusion.shape === "ellipse") {
+    const rx = inclusion.rx ?? inclusion.radius ?? Math.sqrt(targetArea / Math.PI);
+    const ry = inclusion.ry ?? inclusion.radius ?? rx;
+    const baseArea = Math.PI * rx * ry;
+    const scaleFactor = baseArea > 0 ? Math.sqrt(targetArea / baseArea) : ratioScale;
+    return { ...inclusion, rx: rx * scaleFactor, ry: ry * scaleFactor, fil_frac: filFrac };
+  }
+
+  if (inclusion.shape === "rectangle") {
+    const wx = inclusion.wx ?? Math.sqrt(targetArea);
+    const wy = inclusion.wy ?? wx;
+    const baseArea = wx * wy;
+    const scaleFactor = baseArea > 0 ? Math.sqrt(targetArea / baseArea) : ratioScale;
+    return { ...inclusion, wx: wx * scaleFactor, wy: wy * scaleFactor, fil_frac: filFrac };
+  }
+
+  if (inclusion.vertices?.length) {
+    return { ...inclusion, vertices: inclusion.vertices.map((v) => scale(v, ratioScale)), fil_frac: filFrac };
+  }
+
+  const side = Math.sqrt((4 * targetArea) / 3);
+  return {
+    ...inclusion,
+    vertices: [[-side / 2, -side / 3], [side / 2, -side / 3], [0, (2 * side) / 3]],
+    fil_frac: filFrac
+  };
+}
+
 export function normalizeLattice(input: Partial<Lattice2D>): Lattice2D {
   const cellDeg = Number(input.cell_angle_deg ?? radToDeg(Number(input.cell_angle_rad ?? Math.PI / 2)));
   const rotDeg = Number(input.rotation_deg ?? radToDeg(Number(input.rotation_rad ?? 0)));

@@ -11,7 +11,7 @@ import { TomlEditor } from "./components/TomlEditor";
 import { ValidationPanel } from "./components/ValidationPanel";
 import { Visualization2D } from "./components/Visualization2D";
 import { defaultMC2D } from "./model/defaults";
-import { degToRad, fracToCartesian, inclusionFillFraction, normalizeInclusion, normalizeLattice, normalizeMC2D } from "./model/geometry";
+import { degToRad, fracToCartesian, inclusionFillFraction, normalizeInclusion, normalizeLattice, normalizeMC2D, resizeInclusionToFillFraction } from "./model/geometry";
 import { exportToml, parseToml } from "./model/toml";
 import type { Inclusion, MC2D, ShapeType, Vec2 } from "./model/types";
 import { validateMC2D } from "./model/validation";
@@ -66,7 +66,20 @@ export default function App() {
     }
   };
 
-  const changeInclusion = (id: string, patch: Partial<Inclusion>) => update((current) => ({ ...current, inclusions: current.inclusions.map((inc) => inc.id === id ? { ...inc, ...patch } : inc) }));
+  const changeInclusion = (id: string, patch: Partial<Inclusion>) => {
+    if (patch.id) setSelectedId(patch.id);
+    update((current) => {
+      const lattice = normalizeLattice(current.lattice);
+      return {
+        ...current,
+        inclusions: current.inclusions.map((inc) => {
+          if (inc.id !== id) return inc;
+          const merged = { ...inc, ...patch };
+          return patch.fil_frac === undefined ? merged : resizeInclusionToFillFraction(merged, lattice, patch.fil_frac);
+        })
+      };
+    });
+  };
   const addInclusion = (shape: ShapeType) => update((current) => {
     const id = `inc${current.inclusions.length + 1}`;
     const inc = normalizeInclusion({ id, shape, material: Object.keys(current.materials)[0], center_frac: [0.5, 0.5], radius: 45e-9, wx: 80e-9, wy: 60e-9, vertices: [[-40e-9, -30e-9], [40e-9, -30e-9], [0, 40e-9]] }, current.lattice, current.inclusions.length + 1);
