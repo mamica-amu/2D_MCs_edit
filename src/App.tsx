@@ -11,7 +11,7 @@ import { TomlEditor } from "./components/TomlEditor";
 import { ValidationPanel } from "./components/ValidationPanel";
 import { Visualization2D } from "./components/Visualization2D";
 import { defaultMC2D } from "./model/defaults";
-import { degToRad, fracToCartesian, inclusionFillFraction, normalizeInclusion, normalizeLattice, normalizeMC2D, resizeInclusionToFillFraction } from "./model/geometry";
+import { convertInclusionShape, degToRad, fracToCartesian, inclusionFillFraction, normalizeInclusion, normalizeLattice, normalizeMC2D, resizeInclusionToFillFraction } from "./model/geometry";
 import { exportToml, parseToml } from "./model/toml";
 import type { Inclusion, MC2D, ShapeType, Vec2 } from "./model/types";
 import { validateMC2D } from "./model/validation";
@@ -51,6 +51,17 @@ export default function App() {
 
   useEffect(() => setTomlText(exportToml(mc)), [mc]);
 
+  useEffect(() => {
+    const stopNumberWheel = (event: WheelEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLInputElement && target.type === "number") {
+        target.blur();
+      }
+    };
+    document.addEventListener("wheel", stopNumberWheel, { capture: true });
+    return () => document.removeEventListener("wheel", stopNumberWheel, { capture: true });
+  }, []);
+
   const update = (producer: (current: MC2D) => MC2D, preserveFillIds = new Set<string>()) => {
     setMc((current) => recalc(producer(current), preserveFillIds));
   };
@@ -75,7 +86,7 @@ export default function App() {
         ...current,
         inclusions: current.inclusions.map((inc) => {
           if (inc.id !== id) return inc;
-          const merged = { ...inc, ...patch };
+          const merged = patch.shape && patch.shape !== inc.shape ? convertInclusionShape({ ...inc, ...patch }, lattice, patch.shape) : { ...inc, ...patch };
           return patch.fil_frac === undefined ? merged : resizeInclusionToFillFraction(merged, lattice, patch.fil_frac);
         })
       };

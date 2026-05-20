@@ -125,6 +125,37 @@ export function resizeInclusionToFillFraction(inclusion: Inclusion, lattice: Lat
   };
 }
 
+function inclusionAspectRatio(inclusion: Inclusion): number {
+  if (inclusion.shape === "ellipse" && inclusion.rx && inclusion.ry && inclusion.ry > 0) return inclusion.rx / inclusion.ry;
+  if (inclusion.shape === "rectangle" && inclusion.wx && inclusion.wy && inclusion.wy > 0) return inclusion.wx / inclusion.wy;
+  if (inclusion.shape === "circle") return 1;
+  if (inclusion.vertices?.length) {
+    const xs = inclusion.vertices.map((v) => v[0]);
+    const ys = inclusion.vertices.map((v) => v[1]);
+    const width = Math.max(...xs) - Math.min(...xs);
+    const height = Math.max(...ys) - Math.min(...ys);
+    return height > 0 ? width / height : 1;
+  }
+  return 1;
+}
+
+export function convertInclusionShape(inclusion: Inclusion, lattice: Lattice2D, shape: Inclusion["shape"]): Inclusion {
+  const filFrac = inclusion.fil_frac > 0 ? inclusion.fil_frac : inclusionFillFraction(inclusion, lattice);
+  const ratio = Math.max(1e-9, inclusionAspectRatio(inclusion));
+  const seed: Inclusion = {
+    ...inclusion,
+    shape,
+    radius: shape === "circle" ? inclusion.radius ?? inclusion.rx ?? inclusion.wx : inclusion.radius,
+    rx: shape === "ellipse" ? ratio : inclusion.rx,
+    ry: shape === "ellipse" ? 1 : inclusion.ry,
+    wx: shape === "rectangle" ? ratio : inclusion.wx,
+    wy: shape === "rectangle" ? 1 : inclusion.wy,
+    vertices: shape === "polygon" ? [[-ratio / 2, -0.5], [ratio / 2, -0.5], [0, 0.5]] : inclusion.vertices,
+    fil_frac: filFrac
+  };
+  return resizeInclusionToFillFraction(seed, lattice, filFrac);
+}
+
 export function normalizeLattice(input: Partial<Lattice2D>): Lattice2D {
   const cellDeg = Number(input.cell_angle_deg ?? radToDeg(Number(input.cell_angle_rad ?? Math.PI / 2)));
   const rotDeg = Number(input.rotation_deg ?? radToDeg(Number(input.rotation_rad ?? 0)));

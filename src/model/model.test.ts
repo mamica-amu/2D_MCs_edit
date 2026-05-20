@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import squareExample from "../examples/square_two_inclusions.toml?raw";
-import { cellArea, computeLatticeVectors, degToRad, fracToCartesian, cartesianToFrac, inclusionFillFraction, radToDeg, resizeInclusionToFillFraction } from "./geometry";
+import { cellArea, computeLatticeVectors, convertInclusionShape, degToRad, fracToCartesian, cartesianToFrac, inclusionFillFraction, radToDeg, resizeInclusionToFillFraction } from "./geometry";
 import { exportToml, parseToml } from "./toml";
 import { validateMC2D } from "./validation";
 
@@ -48,6 +48,15 @@ describe("geometria 2D MC", () => {
     const imported = parseToml(text);
     expect(imported.inclusions[0].fil_frac).toBeCloseTo(0.1234);
     expect(imported.structure.filling?.total_fil_frac).toBeGreaterThan(0.1234);
+  });
+
+  it("zmiana kształtu generuje rozmiary z fil_frac i zachowuje proporcję", () => {
+    const mc = parseToml(squareExample);
+    const ellipse = mc.inclusions[1];
+    const ratio = (ellipse.rx ?? 1) / (ellipse.ry ?? 1);
+    const rectangle = convertInclusionShape(ellipse, mc.lattice, "rectangle");
+    expect(inclusionFillFraction(rectangle, mc.lattice)).toBeCloseTo(ellipse.fil_frac);
+    expect((rectangle.wx ?? 1) / (rectangle.wy ?? 1)).toBeCloseTo(ratio);
   });
 });
 
