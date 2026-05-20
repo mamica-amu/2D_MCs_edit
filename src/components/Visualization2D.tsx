@@ -90,13 +90,18 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
         </marker>
       </defs>
       <rect x={minX} y={minY} width={maxX - minX} height={maxY - minY} className="viz-bg" />
-      {showAxes && <g className="axes"><line x1={minX} y1="0" x2={maxX} y2="0" /><line x1="0" y1={minY} x2="0" y2={maxY} /><text x={maxX - pad * 0.5} y={-pad * 0.08}>x</text><text x={pad * 0.08} y={minY + pad * 0.35}>y</text></g>}
+      {showAxes && <g className="axes"><line x1={minX} y1="0" x2={maxX} y2="0" stroke="#6b7280" strokeWidth="1.4" strokeDasharray="8 8" /><line x1="0" y1={minY} x2="0" y2={maxY} stroke="#6b7280" strokeWidth="1.4" strokeDasharray="8 8" /><text x={maxX - pad * 0.5} y={-pad * 0.08} fill="#111827" fontSize="18">x</text><text x={pad * 0.08} y={minY + pad * 0.35} fill="#111827" fontSize="18">y</text></g>}
       {cells.map(([i, j]) => {
         const off = fracToCartesian([i, j], mc.lattice);
         const isMain = i === 0 && j === 0;
         return (
           <g key={`${i}:${j}`} transform={`translate(${off[0] * SCALE} ${-off[1] * SCALE})`} className={isMain ? "main-cell" : "repeat-cell"}>
-            <path d={pathForCell(a1, a2)} />
+            <path
+              d={pathForCell(a1, a2)}
+              fill={isMain ? "rgba(29, 95, 153, 0.08)" : "rgba(29, 95, 153, 0.025)"}
+              stroke={isMain ? "#1d5f99" : "#94a3b8"}
+              strokeWidth={isMain ? 3 : 1.5}
+            />
             {mc.inclusions.map((inc) => inclusionNode(inc, materials, pointerDown, isMain && inc.id === selectedId, isMain))}
             {showLabels && mc.inclusions.map((inc) => (
               <text className={isMain ? "inc-label" : "inc-label ghost"} key={`${i}:${j}:${inc.id}-label`} x={inc.center[0] * SCALE} y={-inc.center[1] * SCALE}>
@@ -106,7 +111,7 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
           </g>
         );
       })}
-      {showVectors && <g className="vectors"><line x1="0" y1="0" x2={a1[0] * SCALE} y2={-a1[1] * SCALE} /><line x1="0" y1="0" x2={a2[0] * SCALE} y2={-a2[1] * SCALE} /><text x={a1[0] * SCALE} y={-a1[1] * SCALE}>a1</text><text x={a2[0] * SCALE} y={-a2[1] * SCALE}>a2</text></g>}
+      {showVectors && <g className="vectors"><line x1="0" y1="0" x2={a1[0] * SCALE} y2={-a1[1] * SCALE} stroke="#111827" strokeWidth="2.5" markerEnd="url(#arrow)" /><line x1="0" y1="0" x2={a2[0] * SCALE} y2={-a2[1] * SCALE} stroke="#111827" strokeWidth="2.5" markerEnd="url(#arrow)" /><text x={a1[0] * SCALE} y={-a1[1] * SCALE} fill="#111827" fontSize="18">a1</text><text x={a2[0] * SCALE} y={-a2[1] * SCALE} fill="#111827" fontSize="18">a2</text></g>}
     </svg>
   );
 }
