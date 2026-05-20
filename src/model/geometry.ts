@@ -178,7 +178,11 @@ export function normalizeMC2D(input: Partial<MC2D>): MC2D {
     void: { Ms: 0, Aex: 0, Lex: 0, alpha: 0 }
   };
   const inclusions = (input.inclusions ?? []).map((inc, index) => normalizeInclusion(inc, lattice, index + 1));
-  const total = inclusions.reduce((sum, inc) => sum + inclusionFillFraction(inc, lattice), 0);
+  const total = inclusions.reduce((sum, inc) => sum + inc.fil_frac, 0);
+  const byMaterial = inclusions.reduce<Record<string, number>>((acc, inc) => {
+    acc[inc.material] = (acc[inc.material] ?? 0) + inc.fil_frac;
+    return acc;
+  }, {});
   return {
     schema_version: input.schema_version ?? "mc2d-0.2",
     units: "SI",
@@ -186,7 +190,7 @@ export function normalizeMC2D(input: Partial<MC2D>): MC2D {
     structure: {
       thickness: Number(input.structure?.thickness ?? 20e-9),
       host_material: input.structure?.host_material ?? Object.keys(materials)[0],
-      filling: { total_fil_frac: total, by_material: input.structure?.filling?.by_material ?? {} }
+      filling: { total_fil_frac: total, by_material: byMaterial }
     },
     materials,
     inclusions,

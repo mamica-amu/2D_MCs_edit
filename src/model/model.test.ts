@@ -40,6 +40,15 @@ describe("geometria 2D MC", () => {
     expect(inclusionFillFraction(resized, mc.lattice)).toBeCloseTo(0.2);
     expect((resized.rx ?? 1) / (resized.ry ?? 1)).toBeCloseTo(ratio);
   });
+
+  it("normalizacja zachowuje jawnie podany fil_frac jako źródło prawdy", () => {
+    const mc = parseToml(squareExample);
+    mc.inclusions[0].fil_frac = 0.1234;
+    const text = exportToml(mc);
+    const imported = parseToml(text);
+    expect(imported.inclusions[0].fil_frac).toBeCloseTo(0.1234);
+    expect(imported.structure.filling?.total_fil_frac).toBeGreaterThan(0.1234);
+  });
 });
 
 describe("TOML i walidacja", () => {
