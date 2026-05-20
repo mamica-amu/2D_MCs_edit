@@ -13,12 +13,19 @@ function pathForCell(a1: Vec2, a2: Vec2) {
   return `M 0 0 L ${a1[0] * SCALE} ${-a1[1] * SCALE} L ${(a1[0] + a2[0]) * SCALE} ${-(a1[1] + a2[1]) * SCALE} L ${a2[0] * SCALE} ${-a2[1] * SCALE} Z`;
 }
 
-function inclusionNode(inc: Inclusion, materials: string[], onDown: (id: string, e: ReactPointerEvent<SVGElement>) => void, selected: boolean) {
+function inclusionNode(inc: Inclusion, materials: string[], onDown: (id: string, e: ReactPointerEvent<SVGElement>) => void, selected: boolean, interactive = true) {
   const c = inc.center;
   const x = c[0] * SCALE;
   const y = -c[1] * SCALE;
   const fill = materialColor(inc.material, materials);
-  const common = { fill, opacity: 0.82, stroke: selected ? "#111827" : "#ffffff", strokeWidth: selected ? 5 : 2.5, onPointerDown: (e: ReactPointerEvent<SVGElement>) => onDown(inc.id, e), className: "inclusion-shape" };
+  const common = {
+    fill,
+    opacity: interactive ? 0.82 : 0.45,
+    stroke: selected ? "#111827" : "#ffffff",
+    strokeWidth: selected ? 5 : 2.5,
+    onPointerDown: interactive ? (e: ReactPointerEvent<SVGElement>) => onDown(inc.id, e) : undefined,
+    className: interactive ? "inclusion-shape" : "inclusion-shape ghost"
+  };
   if (inc.shape === "circle") return <circle key={inc.id} cx={x} cy={y} r={(inc.radius ?? 0) * SCALE} {...common} />;
   if (inc.shape === "ellipse") return <ellipse key={inc.id} cx={x} cy={y} rx={(inc.rx ?? 0) * SCALE} ry={(inc.ry ?? 0) * SCALE} transform={`rotate(${-(inc.rotation_deg ?? 0)} ${x} ${y})`} {...common} />;
   if (inc.shape === "rectangle") return <rect key={inc.id} x={x - ((inc.wx ?? 0) * SCALE) / 2} y={y - ((inc.wy ?? 0) * SCALE) / 2} width={(inc.wx ?? 0) * SCALE} height={(inc.wy ?? 0) * SCALE} transform={`rotate(${-(inc.rotation_deg ?? 0)} ${x} ${y})`} {...common} />;
@@ -86,11 +93,20 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
       {showAxes && <g className="axes"><line x1={minX} y1="0" x2={maxX} y2="0" /><line x1="0" y1={minY} x2="0" y2={maxY} /><text x={maxX - pad * 0.5} y={-pad * 0.08}>x</text><text x={pad * 0.08} y={minY + pad * 0.35}>y</text></g>}
       {cells.map(([i, j]) => {
         const off = fracToCartesian([i, j], mc.lattice);
-        return <g key={`${i}:${j}`} transform={`translate(${off[0] * SCALE} ${-off[1] * SCALE})`} className={i || j ? "repeat-cell" : "main-cell"}><path d={pathForCell(a1, a2)} /></g>;
+        const isMain = i === 0 && j === 0;
+        return (
+          <g key={`${i}:${j}`} transform={`translate(${off[0] * SCALE} ${-off[1] * SCALE})`} className={isMain ? "main-cell" : "repeat-cell"}>
+            <path d={pathForCell(a1, a2)} />
+            {mc.inclusions.map((inc) => inclusionNode(inc, materials, pointerDown, isMain && inc.id === selectedId, isMain))}
+            {showLabels && mc.inclusions.map((inc) => (
+              <text className={isMain ? "inc-label" : "inc-label ghost"} key={`${i}:${j}:${inc.id}-label`} x={inc.center[0] * SCALE} y={-inc.center[1] * SCALE}>
+                {isMain ? `${inc.id} / ${inc.material}` : inc.id}
+              </text>
+            ))}
+          </g>
+        );
       })}
       {showVectors && <g className="vectors"><line x1="0" y1="0" x2={a1[0] * SCALE} y2={-a1[1] * SCALE} /><line x1="0" y1="0" x2={a2[0] * SCALE} y2={-a2[1] * SCALE} /><text x={a1[0] * SCALE} y={-a1[1] * SCALE}>a1</text><text x={a2[0] * SCALE} y={-a2[1] * SCALE}>a2</text></g>}
-      {mc.inclusions.map((inc) => inclusionNode(inc, materials, pointerDown, inc.id === selectedId))}
-      {showLabels && mc.inclusions.map((inc) => <text className="inc-label" key={`${inc.id}-label`} x={inc.center[0] * SCALE} y={-inc.center[1] * SCALE}>{inc.id} / {inc.material}</text>)}
     </svg>
   );
 }

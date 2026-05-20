@@ -49,6 +49,8 @@ summary { cursor: pointer; font-weight: 800; margin: 8px 0; }
 .vectors line { stroke: #111827; stroke-width: 2.5; marker-end: url(#arrow); }
 .inclusion-shape { cursor: grab; }
 .inclusion-shape:hover { opacity: .96; }
+.inclusion-shape.ghost { cursor: default; pointer-events: none; }
+.inc-label.ghost { opacity: .55; }
 .toml-panel { display: grid; grid-template-rows: auto auto 1fr; min-height: 48vh; margin-bottom: 12px; }
 .panel-title { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 10px; border-bottom: 1px solid var(--line); }
 .toml-panel textarea { width: 100%; min-height: 360px; border: 0; border-radius: 0; resize: vertical; font-family: "Cascadia Code", Consolas, monospace; font-size: 12px; }
