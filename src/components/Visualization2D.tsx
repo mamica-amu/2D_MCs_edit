@@ -118,10 +118,10 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
               stroke={drawAsMain ? "#1d5f99" : "#94a3b8"}
               strokeWidth={drawAsMain ? 3 : 1.5}
             />
-            {mc.inclusions.map((inc) => inclusionNode(inc, materials, pointerDown, isMain && inc.id === selectedId, isMain))}
+            {mc.inclusions.map((inc) => inclusionNode(inc, materials, pointerDown, highlightCenter && isMain && inc.id === selectedId, isMain))}
             {showLabels && mc.inclusions.map((inc) => (
-              <text className={isMain ? "inc-label" : "inc-label ghost"} key={`${i}:${j}:${inc.id}-label`} x={inc.center[0] * SCALE} y={-inc.center[1] * SCALE}>
-                {isMain ? `${inc.id} / ${inc.material}` : inc.id}
+              <text className={highlightCenter && isMain ? "inc-label" : "inc-label ghost"} key={`${i}:${j}:${inc.id}-label`} x={inc.center[0] * SCALE} y={-inc.center[1] * SCALE}>
+                {highlightCenter && isMain ? `${inc.id} / ${inc.material}` : inc.id}
               </text>
             ))}
           </g>
