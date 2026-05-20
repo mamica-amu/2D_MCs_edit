@@ -5,6 +5,7 @@ import { LatticePanel } from "./components/LatticePanel";
 import { MaterialsPanel } from "./components/MaterialsPanel";
 import { PhysicsPanel } from "./components/PhysicsPanel";
 import { StructurePanel } from "./components/StructurePanel";
+import { SelectedInclusionPanel } from "./components/SelectedInclusionPanel";
 import { Toolbar } from "./components/Toolbar";
 import { TomlEditor } from "./components/TomlEditor";
 import { ValidationPanel } from "./components/ValidationPanel";
@@ -46,6 +47,7 @@ export default function App() {
   const [showLabels, setShowLabels] = useState(true);
   const [showVectors, setShowVectors] = useState(true);
   const messages = useMemo(() => validateMC2D(mc), [mc]);
+  const selectedInclusion = useMemo(() => mc.inclusions.find((inc) => inc.id === selectedId), [mc.inclusions, selectedId]);
 
   useEffect(() => setTomlText(exportToml(mc)), [mc]);
 
@@ -107,7 +109,7 @@ export default function App() {
       toolbar={<Toolbar onNew={() => setMc(recalc(defaultMC2D))} onLoadText={(text) => { setTomlText(text); applyToml(text); }} onSave={() => download("mc2d.toml", exportToml(mc), "text/plain")} onValidate={() => setParseError(undefined)} onExportSvg={exportSvg} onExportPng={exportPng} />}
       left={<><LatticePanel lattice={mc.lattice} onChange={(patch) => update((c) => ({ ...c, lattice: { ...c.lattice, ...patch } }))} /><StructurePanel structure={mc.structure} materials={Object.keys(mc.materials)} onChange={(patch) => update((c) => ({ ...c, structure: { ...c.structure, ...patch } }))} /><MaterialsPanel materials={mc.materials} onChange={(materials) => update((c) => ({ ...c, materials }))} /><PhysicsPanel physics={mc.physics} onChange={(patch) => update((c) => ({ ...c, physics: { ...c.physics, ...patch } }))} /><InclusionsPanel inclusions={mc.inclusions} materials={Object.keys(mc.materials)} selectedId={selectedId} onSelect={setSelectedId} onChange={changeInclusion} onAdd={addInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} /></>}
       center={<section className="panel viz-panel"><div className="viz-controls"><label>powielenie<select value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}><option value={1}>1x1</option><option value={3}>3x3</option></select></label><label><input type="checkbox" checked={showAxes} onChange={(e) => setShowAxes(e.target.checked)} /> osie</label><label><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> etykiety</label><label><input type="checkbox" checked={showVectors} onChange={(e) => setShowVectors(e.target.checked)} /> wektory</label></div><Visualization2D mc={mc} selectedId={selectedId} repeat={repeat} showAxes={showAxes} showLabels={showLabels} showVectors={showVectors} onSelect={setSelectedId} onMove={(id: string, center_frac: Vec2) => changeInclusion(id, { center_frac })} /></section>}
-      right={<><TomlEditor text={tomlText} parseError={parseError} onChange={setTomlText} onApply={() => applyToml()} /><ValidationPanel messages={messages} /></>}
+      right={<><TomlEditor text={tomlText} parseError={parseError} onChange={setTomlText} onApply={() => applyToml()} /><SelectedInclusionPanel inclusion={selectedInclusion} materials={Object.keys(mc.materials)} onChange={changeInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} /><ValidationPanel messages={messages} /></>}
     />
   );
 }
