@@ -8,9 +8,10 @@ interface Props {
   onValidate: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
+  onHelp: () => void;
 }
 
-export function Toolbar({ onNew, onLoadText, onSave, onValidate, onExportSvg, onExportPng }: Props) {
+export function Toolbar({ onNew, onLoadText, onSave, onValidate, onExportSvg, onExportPng, onHelp }: Props) {
   const loadFile = async (file?: File) => {
     if (file) onLoadText(await file.text());
   };
@@ -28,6 +29,7 @@ export function Toolbar({ onNew, onLoadText, onSave, onValidate, onExportSvg, on
       <button onClick={onValidate}>Validate</button>
       <button onClick={onExportSvg}>Export SVG</button>
       <button onClick={onExportPng}>Export PNG</button>
+      <button onClick={onHelp}>Help</button>
     </header>
   );
 }

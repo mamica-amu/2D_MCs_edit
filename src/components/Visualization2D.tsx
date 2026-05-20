@@ -47,11 +47,15 @@ interface Props {
   showVectors: boolean;
   highlightCenter: boolean;
   allowDrag: boolean;
+  snapEnabled: boolean;
+  snapMode: "fraction" | "si";
+  snapFracStep: number;
+  snapMeterStep: number;
   onSelect: (id: string) => void;
   onMove: (id: string, centerFrac: Vec2) => void;
 }
 
-export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, showVectors, highlightCenter, allowDrag, onSelect, onMove }: Props) {
+export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, showVectors, highlightCenter, allowDrag, snapEnabled, snapMode, snapFracStep, snapMeterStep, onSelect, onMove }: Props) {
   const area = cellArea(mc.lattice);
   if (!(area > 0)) return <section className="viz-empty">Brak poprawnej geometrii komórki. Sprawdź a1/a2 lub parametry sieci.</section>;
   const a1 = mc.lattice.a1;
@@ -86,7 +90,18 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
       point.y = event.clientY;
       const svgPoint = point.matrixTransform(svg.getScreenCTM()?.inverse());
       const center: Vec2 = [svgPoint.x / SCALE, -svgPoint.y / SCALE];
-      onMove(id, cartesianToFrac(center, mc.lattice));
+      if (!snapEnabled) {
+        onMove(id, cartesianToFrac(center, mc.lattice));
+        return;
+      }
+      if (snapMode === "fraction") {
+        const step = Math.max(1e-9, snapFracStep);
+        const frac = cartesianToFrac(center, mc.lattice);
+        onMove(id, [Math.round(frac[0] / step) * step, Math.round(frac[1] / step) * step]);
+        return;
+      }
+      const step = Math.max(1e-18, snapMeterStep);
+      onMove(id, cartesianToFrac([Math.round(center[0] / step) * step, Math.round(center[1] / step) * step], mc.lattice));
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
