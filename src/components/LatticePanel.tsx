@@ -1,4 +1,5 @@
 import type { ChangeEvent } from "react";
+import { CollapsibleSection } from "./CollapsibleSection";
 import type { Lattice2D } from "../model/types";
 
 interface Props {
@@ -9,8 +10,7 @@ interface Props {
 export function LatticePanel({ lattice, onChange }: Props) {
   const num = (key: keyof Lattice2D) => (e: ChangeEvent<HTMLInputElement>) => onChange({ [key]: Number(e.target.value) } as Partial<Lattice2D>);
   return (
-    <section className="form-section">
-      <h3>Lattice</h3>
+    <CollapsibleSection title="Sieć" defaultOpen={false}>
       <label>Typ<select value={lattice.type} onChange={(e) => onChange({ type: e.target.value as Lattice2D["type"] })}>
         {["square", "rectangular", "hexagonal", "oblique", "custom"].map((x) => <option key={x}>{x}</option>)}
       </select></label>
@@ -23,6 +23,6 @@ export function LatticePanel({ lattice, onChange }: Props) {
       <label>compression_frame<select value={lattice.compression_frame} onChange={(e) => onChange({ compression_frame: e.target.value as Lattice2D["compression_frame"] })}>
         <option>lattice</option><option>lab</option>
       </select></label>
-    </section>
+    </CollapsibleSection>
   );
 }

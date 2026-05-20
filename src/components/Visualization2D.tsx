@@ -1,13 +1,9 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { cartesianToFrac, cellArea, fracToCartesian } from "../model/geometry";
+import { materialColor } from "../model/colors";
 import type { Inclusion, MC2D, Vec2 } from "../model/types";
 
-const colors = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#17becf"];
 const SCALE = 1e9;
-
-function materialColor(name: string, materials: string[]) {
-  return colors[Math.max(0, materials.indexOf(name)) % colors.length];
-}
 
 function pathForCell(a1: Vec2, a2: Vec2) {
   return `M 0 0 L ${a1[0] * SCALE} ${-a1[1] * SCALE} L ${(a1[0] + a2[0]) * SCALE} ${-(a1[1] + a2[1]) * SCALE} L ${a2[0] * SCALE} ${-a2[1] * SCALE} Z`;

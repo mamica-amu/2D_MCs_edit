@@ -125,6 +125,20 @@ export default function App() {
     return { ...current, inclusions: [...current.inclusions, inc] };
   });
 
+  const addMaterial = () => {
+    let index = Object.keys(mc.materials).length + 1;
+    let name = `material_${index}`;
+    while (mc.materials[name]) {
+      index += 1;
+      name = `material_${index}`;
+    }
+    update((current) => ({
+      ...current,
+      materials: { ...current.materials, [name]: { Ms: 0, Aex: 0, Lex: 0, alpha: 0 } }
+    }));
+    return name;
+  };
+
   const exportSvg = () => {
     const svg = cloneSvgForExport();
     if (svg) download("mc2d-view.svg", new XMLSerializer().serializeToString(svg), "image/svg+xml");
@@ -162,9 +176,9 @@ export default function App() {
     <>
     <EditorLayout
       toolbar={<Toolbar onNew={() => setMc(recalc(defaultMC2D))} onLoadText={(text) => { setTomlText(text); applyToml(text); }} onSave={() => download("mc2d.toml", exportToml(mc), "text/plain")} onValidate={() => setParseError(undefined)} onExportSvg={exportSvg} onExportPng={exportPng} onHelp={() => setShowHelp(true)} />}
-      left={<><LatticePanel lattice={mc.lattice} onChange={(patch) => update((c) => ({ ...c, lattice: { ...c.lattice, ...patch } }))} /><StructurePanel structure={mc.structure} materials={Object.keys(mc.materials)} onChange={(patch) => update((c) => ({ ...c, structure: { ...c.structure, ...patch } }))} /><MaterialsPanel materials={mc.materials} onChange={(materials) => update((c) => ({ ...c, materials }))} /><PhysicsPanel physics={mc.physics} onChange={(patch) => update((c) => ({ ...c, physics: { ...c.physics, ...patch } }))} /><InclusionsPanel inclusions={mc.inclusions} materials={Object.keys(mc.materials)} selectedId={selectedId} onSelect={setSelectedId} onChange={changeInclusion} onAdd={addInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} /></>}
+      left={<><LatticePanel lattice={mc.lattice} onChange={(patch) => update((c) => ({ ...c, lattice: { ...c.lattice, ...patch } }))} /><StructurePanel structure={mc.structure} materials={Object.keys(mc.materials)} onChange={(patch) => update((c) => ({ ...c, structure: { ...c.structure, ...patch } }))} /><InclusionsPanel inclusions={mc.inclusions} materials={Object.keys(mc.materials)} selectedId={selectedId} onSelect={setSelectedId} onAdd={addInclusion} /><SelectedInclusionPanel inclusion={selectedInclusion} materials={Object.keys(mc.materials)} onChange={changeInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} onAddMaterial={addMaterial} /><MaterialsPanel materials={mc.materials} onChange={(materials) => update((c) => ({ ...c, materials }))} /><PhysicsPanel physics={mc.physics} onChange={(patch) => update((c) => ({ ...c, physics: { ...c.physics, ...patch } }))} /></>}
       center={<section className="panel viz-panel"><div className="viz-controls"><label>powielenie<select value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}><option value={1}>1x1</option><option value={3}>3x3</option><option value={5}>5x5</option><option value={7}>7x7</option></select></label><label><input type="checkbox" checked={showAxes} onChange={(e) => setShowAxes(e.target.checked)} /> osie</label><label><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> etykiety</label><label><input type="checkbox" checked={showVectors} onChange={(e) => setShowVectors(e.target.checked)} /> wektory</label><label><input type="checkbox" checked={highlightCenter} onChange={(e) => setHighlightCenter(e.target.checked)} /> środkowa</label><label><input type="checkbox" checked={allowDrag} onChange={(e) => setAllowDrag(e.target.checked)} /> przesuwanie</label><label><input type="checkbox" checked={snapEnabled} onChange={(e) => setSnapEnabled(e.target.checked)} /> snap</label><label>tryb<select value={snapMode} onChange={(e) => setSnapMode(e.target.value as "fraction" | "si")}><option value="fraction">ułamek a1/a2</option><option value="si">SI [m]</option></select></label>{snapMode === "fraction" ? <label>krok<input type="number" value={snapFracStep} min="0.000001" step="0.01" onChange={(e) => setSnapFracStep(Number(e.target.value))} /></label> : <label>krok [m]<input type="number" value={snapMeterStep} min="1e-18" step="1e-9" onChange={(e) => setSnapMeterStep(Number(e.target.value))} /></label>}</div><Visualization2D mc={mc} selectedId={selectedId} repeat={repeat} showAxes={showAxes} showLabels={showLabels} showVectors={showVectors} highlightCenter={highlightCenter} allowDrag={allowDrag} snapEnabled={snapEnabled} snapMode={snapMode} snapFracStep={snapFracStep} snapMeterStep={snapMeterStep} onSelect={setSelectedId} onMove={(id: string, center_frac: Vec2) => changeInclusion(id, { center_frac })} /></section>}
-      right={<><TomlEditor text={tomlText} parseError={parseError} onChange={setTomlText} onApply={() => applyToml()} /><SelectedInclusionPanel inclusion={selectedInclusion} materials={Object.keys(mc.materials)} onChange={changeInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} /><ValidationPanel messages={messages} /></>}
+      right={<><TomlEditor text={tomlText} parseError={parseError} onChange={setTomlText} onApply={() => applyToml()} /><ValidationPanel messages={messages} /></>}
     />
     {showHelp && (
       <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Pomoc">
@@ -175,7 +189,7 @@ export default function App() {
           </div>
           <div className="help-content">
             <p><strong>Import TOML:</strong> użyj Load TOML albo Load Example. Po zmianie formularzy edytor TOML aktualizuje się automatycznie.</p>
-            <p><strong>Rysunek:</strong> kliknięcie inkluzji wybiera ją w panelu po prawej. Przełącznik przesuwanie blokuje lub odblokowuje drag myszą.</p>
+            <p><strong>Rysunek:</strong> kliknięcie inkluzji wybiera ją w panelu edycji. Przełącznik przesuwanie blokuje lub odblokowuje drag myszą.</p>
             <p><strong>Snap:</strong> włącz snap, aby przyciągać środek inkluzji podczas przeciągania. Tryb ułamek a1/a2 działa we współrzędnych center_frac; tryb SI [m] działa w metrach w układzie laboratoryjnym.</p>
             <p><strong>Eksport:</strong> Save TOML zapisuje model, a Export SVG/PNG zapisuje pełny aktualny widok 1x1, 3x3, 5x5 albo 7x7.</p>
           </div>

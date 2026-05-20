@@ -1,3 +1,4 @@
+import { CollapsibleSection } from "./CollapsibleSection";
 import type { Inclusion, ShapeType } from "../model/types";
 
 interface Props {
@@ -6,29 +7,27 @@ interface Props {
   onChange: (id: string, patch: Partial<Inclusion>) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onAddMaterial: () => string;
 }
 
-export function SelectedInclusionPanel({ inclusion, materials, onChange, onDelete, onDuplicate }: Props) {
+export function SelectedInclusionPanel({ inclusion, materials, onChange, onDelete, onDuplicate, onAddMaterial }: Props) {
   if (!inclusion) {
     return (
-      <section className="panel selected-panel">
-        <h2>Wybrana inkluzja</h2>
-        <p>Kliknij inkluzję na rysunku, aby edytować jej parametry.</p>
-      </section>
+      <CollapsibleSection title="Wybrana inkluzja" defaultOpen>
+        <p>Kliknij inkluzję na rysunku albo wybierz ją z listy.</p>
+      </CollapsibleSection>
     );
   }
 
   const set = (patch: Partial<Inclusion>) => onChange(inclusion.id, patch);
+  const changeMaterial = (value: string) => set({ material: value === "__new__" ? onAddMaterial() : value });
 
   return (
-    <section className="panel selected-panel">
-      <div className="panel-title compact">
-        <h2>Wybrana inkluzja</h2>
-        <strong>{inclusion.id}</strong>
-      </div>
+    <CollapsibleSection title="Wybrana inkluzja" defaultOpen>
+      <div className="selected-header"><strong>{inclusion.id}</strong></div>
       <div className="selected-grid">
         <label>id<input value={inclusion.id} onChange={(e) => set({ id: e.target.value })} /></label>
-        <label>materiał<select value={inclusion.material} onChange={(e) => set({ material: e.target.value })}>{materials.map((m) => <option key={m}>{m}</option>)}</select></label>
+        <label>materiał<select value={inclusion.material} onChange={(e) => changeMaterial(e.target.value)}>{materials.map((m) => <option key={m}>{m}</option>)}<option value="__new__">+ NOWY</option></select></label>
         <label>kształt<select value={inclusion.shape} onChange={(e) => set({ shape: e.target.value as ShapeType })}>{["circle", "ellipse", "rectangle", "polygon"].map((s) => <option key={s}>{s}</option>)}</select></label>
         <label>priority<input type="number" value={inclusion.priority} onChange={(e) => set({ priority: Number(e.target.value) })} /></label>
         <div className="double wide">center_frac
@@ -55,6 +54,6 @@ export function SelectedInclusionPanel({ inclusion, materials, onChange, onDelet
         <button onClick={() => onDuplicate(inclusion.id)}>Duplikuj</button>
         <button className="danger" onClick={() => onDelete(inclusion.id)}>Usuń</button>
       </div>
-    </section>
+    </CollapsibleSection>
   );
 }

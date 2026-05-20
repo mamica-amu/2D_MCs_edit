@@ -1,10 +1,10 @@
+import { CollapsibleSection } from "./CollapsibleSection";
 import type { Material } from "../model/types";
 
 export function MaterialsPanel({ materials, onChange }: { materials: Record<string, Material>; onChange: (next: Record<string, Material>) => void }) {
   const update = (name: string, key: keyof Material, value: number) => onChange({ ...materials, [name]: { ...materials[name], [key]: value } });
   return (
-    <section className="form-section">
-      <h3>Materials</h3>
+    <CollapsibleSection title="Materiały" defaultOpen={false}>
       {Object.entries(materials).map(([name, mat]) => (
         <details key={name} open={name === "Py"}>
           <summary>{name}</summary>
@@ -13,6 +13,6 @@ export function MaterialsPanel({ materials, onChange }: { materials: Record<stri
           ))}
         </details>
       ))}
-    </section>
+    </CollapsibleSection>
   );
 }

@@ -1,3 +1,4 @@
+import { CollapsibleSection } from "./CollapsibleSection";
 import type { Physics } from "../model/types";
 
 export function PhysicsPanel({ physics, onChange }: { physics: Physics; onChange: (patch: Partial<Physics>) => void }) {
@@ -7,8 +8,7 @@ export function PhysicsPanel({ physics, onChange }: { physics: Physics; onChange
     onChange({ [key]: next } as Partial<Physics>);
   };
   return (
-    <section className="form-section">
-      <h3>Physics</h3>
+    <CollapsibleSection title="Fizyka" defaultOpen={false}>
       <label>gamma<input type="number" value={physics.gamma} onChange={(e) => onChange({ gamma: Number(e.target.value) })} /></label>
       <label>mu0<input type="number" value={physics.mu0} onChange={(e) => onChange({ mu0: Number(e.target.value) })} /></label>
       <label>H0 [T]<input type="number" value={physics.H0} onChange={(e) => onChange({ H0: Number(e.target.value) })} /></label>
@@ -16,6 +16,6 @@ export function PhysicsPanel({ physics, onChange }: { physics: Physics; onChange
       <div className="triple">m_eq {(physics.m_eq ?? [0, 0, 1]).map((v, i) => <input key={i} type="number" value={v} onChange={(e) => vec("m_eq", i, Number(e.target.value))} />)}</div>
       <label>demag<input value={physics.demag} onChange={(e) => onChange({ demag: e.target.value })} /></label>
       <label>equilibrium<input value={physics.equilibrium} onChange={(e) => onChange({ equilibrium: e.target.value })} /></label>
-    </section>
+    </CollapsibleSection>
   );
 }
