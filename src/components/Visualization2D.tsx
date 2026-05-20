@@ -45,11 +45,12 @@ interface Props {
   showAxes: boolean;
   showLabels: boolean;
   showVectors: boolean;
+  highlightCenter: boolean;
   onSelect: (id: string) => void;
   onMove: (id: string, centerFrac: Vec2) => void;
 }
 
-export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, showVectors, onSelect, onMove }: Props) {
+export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, showVectors, highlightCenter, onSelect, onMove }: Props) {
   const area = cellArea(mc.lattice);
   if (!(area > 0)) return <section className="viz-empty">Brak poprawnej geometrii komórki. Sprawdź a1/a2 lub parametry sieci.</section>;
   const a1 = mc.lattice.a1;
@@ -108,13 +109,14 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
       {cells.map(([i, j]) => {
         const off = fracToCartesian([i, j], mc.lattice);
         const isMain = i === 0 && j === 0;
+        const drawAsMain = isMain || !highlightCenter;
         return (
-          <g key={`${i}:${j}`} transform={`translate(${off[0] * SCALE} ${-off[1] * SCALE})`} className={isMain ? "main-cell" : "repeat-cell"}>
+          <g key={`${i}:${j}`} transform={`translate(${off[0] * SCALE} ${-off[1] * SCALE})`} className={drawAsMain ? "main-cell" : "repeat-cell"}>
             <path
               d={pathForCell(a1, a2)}
-              fill={isMain ? "rgba(29, 95, 153, 0.08)" : "rgba(29, 95, 153, 0.025)"}
-              stroke={isMain ? "#1d5f99" : "#94a3b8"}
-              strokeWidth={isMain ? 3 : 1.5}
+              fill={drawAsMain ? "rgba(29, 95, 153, 0.08)" : "rgba(29, 95, 153, 0.025)"}
+              stroke={drawAsMain ? "#1d5f99" : "#94a3b8"}
+              strokeWidth={drawAsMain ? 3 : 1.5}
             />
             {mc.inclusions.map((inc) => inclusionNode(inc, materials, pointerDown, isMain && inc.id === selectedId, isMain))}
             {showLabels && mc.inclusions.map((inc) => (
