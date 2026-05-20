@@ -1,0 +1,45 @@
+schema_version = "mc2d-0.2"
+units = "SI"
+
+[lattice]
+type = "square"
+a = 400e-9
+b = 400e-9
+cell_angle_deg = 90.0
+rotation_deg = 0.0
+sx = 1.0
+sy = 1.0
+compression_frame = "lattice"
+
+[structure]
+thickness = 20e-9
+host_material = "Py"
+
+[materials.Py]
+Ms = 8.0e5
+Aex = 13e-12
+Lex = 5.7e-9
+alpha = 0.01
+
+[materials.void]
+Ms = 0.0
+Aex = 0.0
+Lex = 0.0
+alpha = 0.0
+
+[[inclusions]]
+id = "hole1"
+material = "void"
+shape = "circle"
+center_frac = [0.5, 0.5]
+radius = 60e-9
+priority = 10
+
+[physics]
+gamma = 1.76085963023e11
+mu0 = 1.25663706212e-6
+H0 = 0.1
+H0_dir = [0, 0, 1]
+m_eq = [0, 0, 1]
+demag = "full"
+equilibrium = "saturated"

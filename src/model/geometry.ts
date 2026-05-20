@@ -1,0 +1,164 @@
+import type { Inclusion, Lattice2D, MC2D, Vec2 } from "./types";
+
+export const degToRad = (deg: number) => (deg * Math.PI) / 180;
+export const radToDeg = (rad: number) => (rad * 180) / Math.PI;
+
+export function add(a: Vec2, b: Vec2): Vec2 {
+  return [a[0] + b[0], a[1] + b[1]];
+}
+
+export function sub(a: Vec2, b: Vec2): Vec2 {
+  return [a[0] - b[0], a[1] - b[1]];
+}
+
+export function scale(v: Vec2, s: number): Vec2 {
+  return [v[0] * s, v[1] * s];
+}
+
+export function det(a: Vec2, b: Vec2): number {
+  return a[0] * b[1] - a[1] * b[0];
+}
+
+export function rotate(v: Vec2, angleRad: number): Vec2 {
+  const c = Math.cos(angleRad);
+  const s = Math.sin(angleRad);
+  return [c * v[0] - s * v[1], s * v[0] + c * v[1]];
+}
+
+export function computeBaseVectors(lattice: Partial<Lattice2D>): [Vec2, Vec2] {
+  const a = Number(lattice.a || 0);
+  const b = Number(lattice.b || lattice.a || 0);
+  const angle = lattice.type === "hexagonal" && !lattice.cell_angle_deg ? 60 : Number(lattice.cell_angle_deg ?? 90);
+  return [
+    [a, 0],
+    [b * Math.cos(degToRad(angle)), b * Math.sin(degToRad(angle))]
+  ];
+}
+
+export function computeLatticeVectors(lattice: Partial<Lattice2D>): [Vec2, Vec2] {
+  if (lattice.type === "custom" && lattice.a1 && lattice.a2) return [lattice.a1, lattice.a2];
+  const sx = Number(lattice.sx ?? 1);
+  const sy = Number(lattice.sy ?? 1);
+  const theta = Number(lattice.rotation_rad ?? degToRad(Number(lattice.rotation_deg ?? 0)));
+  const frame = lattice.compression_frame ?? "lattice";
+  const [b1, b2] = computeBaseVectors(lattice);
+  const transform = (v: Vec2): Vec2 => {
+    if (frame === "lab") return [rotate(v, theta)[0] * sx, rotate(v, theta)[1] * sy];
+    return rotate([v[0] * sx, v[1] * sy], theta);
+  };
+  return [transform(b1), transform(b2)];
+}
+
+export function cellArea(lattice: Pick<Lattice2D, "a1" | "a2">): number {
+  return Math.abs(det(lattice.a1, lattice.a2));
+}
+
+export function fracToCartesian(frac: Vec2, lattice: Pick<Lattice2D, "a1" | "a2">): Vec2 {
+  return add(scale(lattice.a1, frac[0]), scale(lattice.a2, frac[1]));
+}
+
+export function cartesianToFrac(center: Vec2, lattice: Pick<Lattice2D, "a1" | "a2">): Vec2 {
+  const d = det(lattice.a1, lattice.a2);
+  if (Math.abs(d) < 1e-30) return [NaN, NaN];
+  return [det(center, lattice.a2) / d, det(lattice.a1, center) / d];
+}
+
+export function polygonArea(vertices: Vec2[] = []): number {
+  if (vertices.length < 3) return 0;
+  let sum = 0;
+  for (let i = 0; i < vertices.length; i += 1) {
+    const a = vertices[i];
+    const b = vertices[(i + 1) % vertices.length];
+    sum += a[0] * b[1] - b[0] * a[1];
+  }
+  return Math.abs(sum) / 2;
+}
+
+export function inclusionArea(inclusion: Inclusion): number {
+  if (inclusion.shape === "circle") return Math.PI * (inclusion.radius ?? 0) ** 2;
+  if (inclusion.shape === "ellipse") return Math.PI * (inclusion.rx ?? 0) * (inclusion.ry ?? 0);
+  if (inclusion.shape === "rectangle") return (inclusion.wx ?? 0) * (inclusion.wy ?? 0);
+  return polygonArea(inclusion.vertices);
+}
+
+export function inclusionFillFraction(inclusion: Inclusion, lattice: Lattice2D): number {
+  const area = cellArea(lattice);
+  return area > 0 ? inclusionArea(inclusion) / area : 0;
+}
+
+export function normalizeLattice(input: Partial<Lattice2D>): Lattice2D {
+  const cellDeg = Number(input.cell_angle_deg ?? radToDeg(Number(input.cell_angle_rad ?? Math.PI / 2)));
+  const rotDeg = Number(input.rotation_deg ?? radToDeg(Number(input.rotation_rad ?? 0)));
+  const draft: Partial<Lattice2D> = {
+    type: input.type ?? "square",
+    a: Number(input.a ?? 400e-9),
+    b: Number(input.b ?? input.a ?? 400e-9),
+    cell_angle_deg: cellDeg,
+    cell_angle_rad: degToRad(cellDeg),
+    rotation_deg: rotDeg,
+    rotation_rad: degToRad(rotDeg),
+    sx: Number(input.sx ?? 1),
+    sy: Number(input.sy ?? 1),
+    compression_frame: input.compression_frame ?? "lattice",
+    a1: input.a1,
+    a2: input.a2
+  };
+  const [a1, a2] = input.a1 && input.a2 ? [input.a1, input.a2] : computeLatticeVectors(draft);
+  return { ...(draft as Lattice2D), a1, a2 };
+}
+
+export function normalizeInclusion(inclusion: Partial<Inclusion>, lattice: Lattice2D, index = 1): Inclusion {
+  const center_frac = inclusion.center_frac ?? (inclusion.center ? cartesianToFrac(inclusion.center, lattice) : [0.5, 0.5]);
+  const center = inclusion.center ?? fracToCartesian(center_frac, lattice);
+  const rotation_deg = inclusion.rotation_deg ?? (inclusion.rotation_rad === undefined ? 0 : radToDeg(inclusion.rotation_rad));
+  const normalized: Inclusion = {
+    id: inclusion.id ?? `inc${index}`,
+    material: inclusion.material ?? "void",
+    shape: inclusion.shape ?? "circle",
+    center_frac,
+    center,
+    radius: inclusion.radius ?? 40e-9,
+    rx: inclusion.rx,
+    ry: inclusion.ry,
+    wx: inclusion.wx,
+    wy: inclusion.wy,
+    rotation_deg,
+    rotation_rad: degToRad(rotation_deg),
+    vertices: inclusion.vertices,
+    fil_frac: Number(inclusion.fil_frac ?? 0),
+    priority: Number(inclusion.priority ?? index * 10)
+  };
+  normalized.fil_frac = inclusion.fil_frac ?? inclusionFillFraction(normalized, lattice);
+  return normalized;
+}
+
+export function normalizeMC2D(input: Partial<MC2D>): MC2D {
+  const lattice = normalizeLattice(input.lattice ?? {});
+  const materials = input.materials && Object.keys(input.materials).length ? input.materials : {
+    Py: { Ms: 8e5, Aex: 13e-12, Lex: 5.7e-9, alpha: 0.01 },
+    void: { Ms: 0, Aex: 0, Lex: 0, alpha: 0 }
+  };
+  const inclusions = (input.inclusions ?? []).map((inc, index) => normalizeInclusion(inc, lattice, index + 1));
+  const total = inclusions.reduce((sum, inc) => sum + inclusionFillFraction(inc, lattice), 0);
+  return {
+    schema_version: input.schema_version ?? "mc2d-0.2",
+    units: "SI",
+    lattice,
+    structure: {
+      thickness: Number(input.structure?.thickness ?? 20e-9),
+      host_material: input.structure?.host_material ?? Object.keys(materials)[0],
+      filling: { total_fil_frac: total, by_material: input.structure?.filling?.by_material ?? {} }
+    },
+    materials,
+    inclusions,
+    physics: input.physics ?? {
+      gamma: 1.76085963023e11,
+      mu0: 1.25663706212e-6,
+      H0: 0.1,
+      H0_dir: [0, 0, 1],
+      m_eq: [0, 0, 1],
+      demag: "full",
+      equilibrium: "saturated"
+    }
+  };
+}
