@@ -13,6 +13,11 @@ function pathForCell(a1: Vec2, a2: Vec2) {
   return `M 0 0 L ${a1[0] * SCALE} ${-a1[1] * SCALE} L ${(a1[0] + a2[0]) * SCALE} ${-(a1[1] + a2[1]) * SCALE} L ${a2[0] * SCALE} ${-a2[1] * SCALE} Z`;
 }
 
+function repeatSpan(repeat: number): number[] {
+  const half = Math.floor(Math.max(1, repeat) / 2);
+  return Array.from({ length: half * 2 + 1 }, (_, index) => index - half);
+}
+
 function inclusionNode(inc: Inclusion, materials: string[], onDown: (id: string, e: ReactPointerEvent<SVGElement>) => void, selected: boolean, interactive = true) {
   const c = inc.center;
   const x = c[0] * SCALE;
@@ -51,10 +56,20 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
   const a2 = mc.lattice.a2;
   const max = Math.max(Math.hypot(...a1), Math.hypot(...a2), 1e-9) * SCALE;
   const pad = max * 0.85;
-  const minX = Math.min(0, a1[0] * SCALE, a2[0] * SCALE, (a1[0] + a2[0]) * SCALE) - pad;
-  const maxX = Math.max(0, a1[0] * SCALE, a2[0] * SCALE, (a1[0] + a2[0]) * SCALE) + pad;
-  const minY = -Math.max(0, a1[1] * SCALE, a2[1] * SCALE, a1[1] * SCALE + a2[1] * SCALE) - pad;
-  const maxY = -Math.min(0, a1[1] * SCALE, a2[1] * SCALE, a1[1] * SCALE + a2[1] * SCALE) + pad;
+  const span = repeatSpan(repeat);
+  const corners: Vec2[] = [];
+  for (const i of span) {
+    for (const j of span) {
+      const off = fracToCartesian([i, j], mc.lattice);
+      corners.push(off, [off[0] + a1[0], off[1] + a1[1]], [off[0] + a2[0], off[1] + a2[1]], [off[0] + a1[0] + a2[0], off[1] + a1[1] + a2[1]]);
+    }
+  }
+  const xs = corners.map((p) => p[0] * SCALE);
+  const ys = corners.map((p) => -p[1] * SCALE);
+  const minX = Math.min(...xs) - pad;
+  const maxX = Math.max(...xs) + pad;
+  const minY = Math.min(...ys) - pad;
+  const maxY = Math.max(...ys) + pad;
   const materials = Object.keys(mc.materials);
 
   const pointerDown = (id: string, e: ReactPointerEvent<SVGElement>) => {
@@ -79,7 +94,6 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
   };
 
   const cells = [];
-  const span = repeat === 3 ? [-1, 0, 1] : [0];
   for (const i of span) for (const j of span) cells.push([i, j] as const);
 
   return (

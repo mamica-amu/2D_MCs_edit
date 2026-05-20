@@ -37,6 +37,22 @@ function download(name: string, content: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
+function cloneSvgForExport(): SVGSVGElement | undefined {
+  const svg = document.querySelector<SVGSVGElement>("#mc-svg");
+  if (!svg) return undefined;
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+  const viewBox = svg.getAttribute("viewBox");
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  if (viewBox) {
+    const [, , width, height] = viewBox.split(/\s+/).map(Number);
+    clone.setAttribute("viewBox", viewBox);
+    clone.setAttribute("width", String(Math.max(1, Math.round(width))));
+    clone.setAttribute("height", String(Math.max(1, Math.round(height))));
+  }
+  return clone;
+}
+
 export default function App() {
   const [mc, setMc] = useState<MC2D>(() => recalc(defaultMC2D));
   const [tomlText, setTomlText] = useState(() => exportToml(recalc(defaultMC2D)));
@@ -100,20 +116,23 @@ export default function App() {
   });
 
   const exportSvg = () => {
-    const svg = document.querySelector("#mc-svg");
+    const svg = cloneSvgForExport();
     if (svg) download("mc2d-view.svg", new XMLSerializer().serializeToString(svg), "image/svg+xml");
   };
 
   const exportPng = () => {
-    const svg = document.querySelector("#mc-svg");
+    const svg = cloneSvgForExport();
     if (!svg) return;
     const source = new XMLSerializer().serializeToString(svg);
     const image = new Image();
     const url = URL.createObjectURL(new Blob([source], { type: "image/svg+xml" }));
     image.onload = () => {
+      const viewBox = svg.getAttribute("viewBox")?.split(/\s+/).map(Number);
+      const aspect = viewBox && viewBox[2] > 0 && viewBox[3] > 0 ? viewBox[2] / viewBox[3] : 1.4;
+      const maxSide = 2400;
       const canvas = document.createElement("canvas");
-      canvas.width = 1400;
-      canvas.height = 1000;
+      canvas.width = aspect >= 1 ? maxSide : Math.round(maxSide * aspect);
+      canvas.height = aspect >= 1 ? Math.round(maxSide / aspect) : maxSide;
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.fillStyle = "#ffffff";
@@ -133,7 +152,7 @@ export default function App() {
     <EditorLayout
       toolbar={<Toolbar onNew={() => setMc(recalc(defaultMC2D))} onLoadText={(text) => { setTomlText(text); applyToml(text); }} onSave={() => download("mc2d.toml", exportToml(mc), "text/plain")} onValidate={() => setParseError(undefined)} onExportSvg={exportSvg} onExportPng={exportPng} />}
       left={<><LatticePanel lattice={mc.lattice} onChange={(patch) => update((c) => ({ ...c, lattice: { ...c.lattice, ...patch } }))} /><StructurePanel structure={mc.structure} materials={Object.keys(mc.materials)} onChange={(patch) => update((c) => ({ ...c, structure: { ...c.structure, ...patch } }))} /><MaterialsPanel materials={mc.materials} onChange={(materials) => update((c) => ({ ...c, materials }))} /><PhysicsPanel physics={mc.physics} onChange={(patch) => update((c) => ({ ...c, physics: { ...c.physics, ...patch } }))} /><InclusionsPanel inclusions={mc.inclusions} materials={Object.keys(mc.materials)} selectedId={selectedId} onSelect={setSelectedId} onChange={changeInclusion} onAdd={addInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} /></>}
-      center={<section className="panel viz-panel"><div className="viz-controls"><label>powielenie<select value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}><option value={1}>1x1</option><option value={3}>3x3</option></select></label><label><input type="checkbox" checked={showAxes} onChange={(e) => setShowAxes(e.target.checked)} /> osie</label><label><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> etykiety</label><label><input type="checkbox" checked={showVectors} onChange={(e) => setShowVectors(e.target.checked)} /> wektory</label></div><Visualization2D mc={mc} selectedId={selectedId} repeat={repeat} showAxes={showAxes} showLabels={showLabels} showVectors={showVectors} onSelect={setSelectedId} onMove={(id: string, center_frac: Vec2) => changeInclusion(id, { center_frac })} /></section>}
+      center={<section className="panel viz-panel"><div className="viz-controls"><label>powielenie<select value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}><option value={1}>1x1</option><option value={3}>3x3</option><option value={5}>5x5</option><option value={7}>7x7</option></select></label><label><input type="checkbox" checked={showAxes} onChange={(e) => setShowAxes(e.target.checked)} /> osie</label><label><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> etykiety</label><label><input type="checkbox" checked={showVectors} onChange={(e) => setShowVectors(e.target.checked)} /> wektory</label></div><Visualization2D mc={mc} selectedId={selectedId} repeat={repeat} showAxes={showAxes} showLabels={showLabels} showVectors={showVectors} onSelect={setSelectedId} onMove={(id: string, center_frac: Vec2) => changeInclusion(id, { center_frac })} /></section>}
       right={<><TomlEditor text={tomlText} parseError={parseError} onChange={setTomlText} onApply={() => applyToml()} /><SelectedInclusionPanel inclusion={selectedInclusion} materials={Object.keys(mc.materials)} onChange={changeInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} /><ValidationPanel messages={messages} /></>}
     />
   );
