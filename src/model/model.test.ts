@@ -27,6 +27,14 @@ describe("geometria 2D MC", () => {
     expect(cartesianToFrac(center, lattice)[1]).toBeCloseTo(0.75);
   });
 
+  it("konwertuje center na center_frac bez utraty pozycji", () => {
+    const lattice = { a1: [400e-9, 0] as [number, number], a2: [0, 400e-9] as [number, number] };
+    const frac = cartesianToFrac([120e-9, 280e-9], lattice);
+    expect(frac[0]).toBeCloseTo(0.3);
+    expect(frac[1]).toBeCloseTo(0.7);
+    expect(fracToCartesian(frac, lattice)[0]).toBeCloseTo(120e-9);
+  });
+
   it("oblicza fil_frac", () => {
     const mc = parseToml(squareExample);
     expect(inclusionFillFraction(mc.inclusions[0], mc.lattice)).toBeGreaterThan(0);

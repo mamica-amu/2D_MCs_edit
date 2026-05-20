@@ -11,7 +11,7 @@ import { TomlEditor } from "./components/TomlEditor";
 import { ValidationPanel } from "./components/ValidationPanel";
 import { Visualization2D } from "./components/Visualization2D";
 import { defaultMC2D } from "./model/defaults";
-import { convertInclusionShape, degToRad, fracToCartesian, inclusionFillFraction, normalizeInclusion, normalizeLattice, normalizeMC2D, resizeInclusionToFillFraction } from "./model/geometry";
+import { cartesianToFrac, convertInclusionShape, degToRad, fracToCartesian, inclusionFillFraction, normalizeInclusion, normalizeLattice, normalizeMC2D, resizeInclusionToFillFraction } from "./model/geometry";
 import { exportToml, parseToml } from "./model/toml";
 import type { Inclusion, MC2D, ShapeType, Vec2 } from "./model/types";
 import { validateMC2D } from "./model/validation";
@@ -63,6 +63,7 @@ export default function App() {
   const [showLabels, setShowLabels] = useState(true);
   const [showVectors, setShowVectors] = useState(true);
   const [highlightCenter, setHighlightCenter] = useState(true);
+  const [allowDrag, setAllowDrag] = useState(true);
   const messages = useMemo(() => validateMC2D(mc), [mc]);
   const selectedInclusion = useMemo(() => mc.inclusions.find((inc) => inc.id === selectedId), [mc.inclusions, selectedId]);
 
@@ -99,12 +100,13 @@ export default function App() {
     const preserveFillIds = patch.fil_frac === undefined ? new Set<string>() : new Set([id]);
     update((current) => {
       const lattice = normalizeLattice(current.lattice);
+      const normalizedPatch = patch.center && !patch.center_frac ? { ...patch, center_frac: cartesianToFrac(patch.center, lattice) } : patch;
       return {
         ...current,
         inclusions: current.inclusions.map((inc) => {
           if (inc.id !== id) return inc;
-          const merged = patch.shape && patch.shape !== inc.shape ? convertInclusionShape({ ...inc, ...patch }, lattice, patch.shape) : { ...inc, ...patch };
-          return patch.fil_frac === undefined ? merged : resizeInclusionToFillFraction(merged, lattice, patch.fil_frac);
+          const merged = normalizedPatch.shape && normalizedPatch.shape !== inc.shape ? convertInclusionShape({ ...inc, ...normalizedPatch }, lattice, normalizedPatch.shape) : { ...inc, ...normalizedPatch };
+          return normalizedPatch.fil_frac === undefined ? merged : resizeInclusionToFillFraction(merged, lattice, normalizedPatch.fil_frac);
         })
       };
     }, preserveFillIds);
@@ -153,7 +155,7 @@ export default function App() {
     <EditorLayout
       toolbar={<Toolbar onNew={() => setMc(recalc(defaultMC2D))} onLoadText={(text) => { setTomlText(text); applyToml(text); }} onSave={() => download("mc2d.toml", exportToml(mc), "text/plain")} onValidate={() => setParseError(undefined)} onExportSvg={exportSvg} onExportPng={exportPng} />}
       left={<><LatticePanel lattice={mc.lattice} onChange={(patch) => update((c) => ({ ...c, lattice: { ...c.lattice, ...patch } }))} /><StructurePanel structure={mc.structure} materials={Object.keys(mc.materials)} onChange={(patch) => update((c) => ({ ...c, structure: { ...c.structure, ...patch } }))} /><MaterialsPanel materials={mc.materials} onChange={(materials) => update((c) => ({ ...c, materials }))} /><PhysicsPanel physics={mc.physics} onChange={(patch) => update((c) => ({ ...c, physics: { ...c.physics, ...patch } }))} /><InclusionsPanel inclusions={mc.inclusions} materials={Object.keys(mc.materials)} selectedId={selectedId} onSelect={setSelectedId} onChange={changeInclusion} onAdd={addInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} /></>}
-      center={<section className="panel viz-panel"><div className="viz-controls"><label>powielenie<select value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}><option value={1}>1x1</option><option value={3}>3x3</option><option value={5}>5x5</option><option value={7}>7x7</option></select></label><label><input type="checkbox" checked={showAxes} onChange={(e) => setShowAxes(e.target.checked)} /> osie</label><label><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> etykiety</label><label><input type="checkbox" checked={showVectors} onChange={(e) => setShowVectors(e.target.checked)} /> wektory</label><label><input type="checkbox" checked={highlightCenter} onChange={(e) => setHighlightCenter(e.target.checked)} /> środkowa</label></div><Visualization2D mc={mc} selectedId={selectedId} repeat={repeat} showAxes={showAxes} showLabels={showLabels} showVectors={showVectors} highlightCenter={highlightCenter} onSelect={setSelectedId} onMove={(id: string, center_frac: Vec2) => changeInclusion(id, { center_frac })} /></section>}
+      center={<section className="panel viz-panel"><div className="viz-controls"><label>powielenie<select value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}><option value={1}>1x1</option><option value={3}>3x3</option><option value={5}>5x5</option><option value={7}>7x7</option></select></label><label><input type="checkbox" checked={showAxes} onChange={(e) => setShowAxes(e.target.checked)} /> osie</label><label><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> etykiety</label><label><input type="checkbox" checked={showVectors} onChange={(e) => setShowVectors(e.target.checked)} /> wektory</label><label><input type="checkbox" checked={highlightCenter} onChange={(e) => setHighlightCenter(e.target.checked)} /> środkowa</label><label><input type="checkbox" checked={allowDrag} onChange={(e) => setAllowDrag(e.target.checked)} /> przesuwanie</label></div><Visualization2D mc={mc} selectedId={selectedId} repeat={repeat} showAxes={showAxes} showLabels={showLabels} showVectors={showVectors} highlightCenter={highlightCenter} allowDrag={allowDrag} onSelect={setSelectedId} onMove={(id: string, center_frac: Vec2) => changeInclusion(id, { center_frac })} /></section>}
       right={<><TomlEditor text={tomlText} parseError={parseError} onChange={setTomlText} onApply={() => applyToml()} /><SelectedInclusionPanel inclusion={selectedInclusion} materials={Object.keys(mc.materials)} onChange={changeInclusion} onDelete={(id) => update((c) => ({ ...c, inclusions: c.inclusions.filter((i) => i.id !== id) }))} onDuplicate={(id) => update((c) => ({ ...c, inclusions: [...c.inclusions, { ...c.inclusions.find((i) => i.id === id)!, id: `${id}_copy` }] }))} /><ValidationPanel messages={messages} /></>}
     />
   );

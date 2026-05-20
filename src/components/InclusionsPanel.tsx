@@ -36,6 +36,10 @@ export function InclusionsPanel({ inclusions, materials, selectedId, onSelect, o
             <input type="number" value={selected.center_frac[0]} onChange={(e) => set({ center_frac: [Number(e.target.value), selected.center_frac[1]] })} />
             <input type="number" value={selected.center_frac[1]} onChange={(e) => set({ center_frac: [selected.center_frac[0], Number(e.target.value)] })} />
           </div>
+          <div className="double">center [m]
+            <input type="number" value={selected.center[0]} onChange={(e) => set({ center: [Number(e.target.value), selected.center[1]] })} />
+            <input type="number" value={selected.center[1]} onChange={(e) => set({ center: [selected.center[0], Number(e.target.value)] })} />
+          </div>
           {selected.shape === "circle" && <label>radius [m]<input type="number" value={selected.radius ?? ""} onChange={(e) => set({ radius: Number(e.target.value) })} /></label>}
           {selected.shape === "ellipse" && <><label>rx [m]<input type="number" value={selected.rx ?? ""} onChange={(e) => set({ rx: Number(e.target.value) })} /></label><label>ry [m]<input type="number" value={selected.ry ?? ""} onChange={(e) => set({ ry: Number(e.target.value) })} /></label></>}
           {selected.shape === "rectangle" && <><label>wx [m]<input type="number" value={selected.wx ?? ""} onChange={(e) => set({ wx: Number(e.target.value) })} /></label><label>wy [m]<input type="number" value={selected.wy ?? ""} onChange={(e) => set({ wy: Number(e.target.value) })} /></label></>}

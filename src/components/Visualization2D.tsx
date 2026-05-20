@@ -18,14 +18,14 @@ function repeatSpan(repeat: number): number[] {
   return Array.from({ length: half * 2 + 1 }, (_, index) => index - half);
 }
 
-function inclusionNode(inc: Inclusion, materials: string[], onDown: (id: string, e: ReactPointerEvent<SVGElement>) => void, selected: boolean, interactive = true) {
+function inclusionNode(inc: Inclusion, materials: string[], onDown: (id: string, e: ReactPointerEvent<SVGElement>) => void, selected: boolean, interactive = true, muted = false) {
   const c = inc.center;
   const x = c[0] * SCALE;
   const y = -c[1] * SCALE;
   const fill = materialColor(inc.material, materials);
   const common = {
     fill,
-    opacity: interactive ? 0.82 : 0.45,
+    opacity: muted ? 0.45 : 0.82,
     stroke: selected ? "#111827" : "#ffffff",
     strokeWidth: selected ? 5 : 2.5,
     onPointerDown: interactive ? (e: ReactPointerEvent<SVGElement>) => onDown(inc.id, e) : undefined,
@@ -46,11 +46,12 @@ interface Props {
   showLabels: boolean;
   showVectors: boolean;
   highlightCenter: boolean;
+  allowDrag: boolean;
   onSelect: (id: string) => void;
   onMove: (id: string, centerFrac: Vec2) => void;
 }
 
-export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, showVectors, highlightCenter, onSelect, onMove }: Props) {
+export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, showVectors, highlightCenter, allowDrag, onSelect, onMove }: Props) {
   const area = cellArea(mc.lattice);
   if (!(area > 0)) return <section className="viz-empty">Brak poprawnej geometrii komórki. Sprawdź a1/a2 lub parametry sieci.</section>;
   const a1 = mc.lattice.a1;
@@ -76,6 +77,7 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
   const pointerDown = (id: string, e: ReactPointerEvent<SVGElement>) => {
     e.preventDefault();
     onSelect(id);
+    if (!allowDrag) return;
     const svg = e.currentTarget.ownerSVGElement;
     if (!svg) return;
     const move = (event: globalThis.PointerEvent) => {
@@ -118,7 +120,7 @@ export function Visualization2D({ mc, selectedId, repeat, showAxes, showLabels, 
               stroke={drawAsMain ? "#1d5f99" : "#94a3b8"}
               strokeWidth={drawAsMain ? 3 : 1.5}
             />
-            {mc.inclusions.map((inc) => inclusionNode(inc, materials, pointerDown, highlightCenter && isMain && inc.id === selectedId, isMain))}
+            {mc.inclusions.map((inc) => inclusionNode(inc, materials, pointerDown, highlightCenter && isMain && inc.id === selectedId, isMain, highlightCenter && !isMain))}
             {showLabels && mc.inclusions.map((inc) => (
               <text className={highlightCenter && isMain ? "inc-label" : "inc-label ghost"} key={`${i}:${j}:${inc.id}-label`} x={inc.center[0] * SCALE} y={-inc.center[1] * SCALE}>
                 {highlightCenter && isMain ? `${inc.id} / ${inc.material}` : inc.id}

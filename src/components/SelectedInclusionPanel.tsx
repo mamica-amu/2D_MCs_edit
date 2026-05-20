@@ -35,6 +35,10 @@ export function SelectedInclusionPanel({ inclusion, materials, onChange, onDelet
           <input type="number" value={inclusion.center_frac[0]} onChange={(e) => set({ center_frac: [Number(e.target.value), inclusion.center_frac[1]] })} />
           <input type="number" value={inclusion.center_frac[1]} onChange={(e) => set({ center_frac: [inclusion.center_frac[0], Number(e.target.value)] })} />
         </div>
+        <div className="double wide">center [m]
+          <input type="number" value={inclusion.center[0]} onChange={(e) => set({ center: [Number(e.target.value), inclusion.center[1]] })} />
+          <input type="number" value={inclusion.center[1]} onChange={(e) => set({ center: [inclusion.center[0], Number(e.target.value)] })} />
+        </div>
         {inclusion.shape === "circle" && <label>radius [m]<input type="number" value={inclusion.radius ?? ""} onChange={(e) => set({ radius: Number(e.target.value) })} /></label>}
         {inclusion.shape === "ellipse" && <>
           <label>rx [m]<input type="number" value={inclusion.rx ?? ""} onChange={(e) => set({ rx: Number(e.target.value) })} /></label>
