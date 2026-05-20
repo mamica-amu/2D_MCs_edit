@@ -35,6 +35,16 @@ describe("geometria 2D MC", () => {
     expect(fracToCartesian(frac, lattice)[0]).toBeCloseTo(120e-9);
   });
 
+  it("po edycji center można wyliczyć center_frac bez zmiany center", () => {
+    const lattice = { a1: [400e-9, 0] as [number, number], a2: [0, 400e-9] as [number, number] };
+    const editedCenter: [number, number] = [123e-9, 277e-9];
+    const derivedFrac = cartesianToFrac(editedCenter, lattice);
+    expect(editedCenter[0]).toBeCloseTo(123e-9);
+    expect(editedCenter[1]).toBeCloseTo(277e-9);
+    expect(derivedFrac[0]).toBeCloseTo(0.3075);
+    expect(derivedFrac[1]).toBeCloseTo(0.6925);
+  });
+
   it("oblicza fil_frac", () => {
     const mc = parseToml(squareExample);
     expect(inclusionFillFraction(mc.inclusions[0], mc.lattice)).toBeGreaterThan(0);

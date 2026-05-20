@@ -17,10 +17,11 @@ import type { Inclusion, MC2D, ShapeType, Vec2 } from "./model/types";
 import { validateMC2D } from "./model/validation";
 import "./styles/app.css";
 
-function recalc(next: MC2D, preserveFillIds = new Set<string>()): MC2D {
+function recalc(next: MC2D, preserveFillIds = new Set<string>(), preserveCenterIds = new Set<string>()): MC2D {
   const lattice = normalizeLattice(next.lattice);
   const inclusions = next.inclusions.map((inc, i) => {
-    const merged = normalizeInclusion({ ...inc, center: fracToCartesian(inc.center_frac, lattice), rotation_rad: inc.rotation_deg === undefined ? inc.rotation_rad : degToRad(inc.rotation_deg) }, lattice, i + 1);
+    const center = preserveCenterIds.has(inc.id) ? inc.center : fracToCartesian(inc.center_frac, lattice);
+    const merged = normalizeInclusion({ ...inc, center, rotation_rad: inc.rotation_deg === undefined ? inc.rotation_rad : degToRad(inc.rotation_deg) }, lattice, i + 1);
     return { ...merged, fil_frac: preserveFillIds.has(inc.id) ? merged.fil_frac : inclusionFillFraction(merged, lattice) };
   });
   const byMaterial: Record<string, number> = {};
@@ -80,8 +81,8 @@ export default function App() {
     return () => document.removeEventListener("wheel", stopNumberWheel, { capture: true });
   }, []);
 
-  const update = (producer: (current: MC2D) => MC2D, preserveFillIds = new Set<string>()) => {
-    setMc((current) => recalc(producer(current), preserveFillIds));
+  const update = (producer: (current: MC2D) => MC2D, preserveFillIds = new Set<string>(), preserveCenterIds = new Set<string>()) => {
+    setMc((current) => recalc(producer(current), preserveFillIds, preserveCenterIds));
   };
 
   const applyToml = (text = tomlText) => {
@@ -98,6 +99,7 @@ export default function App() {
   const changeInclusion = (id: string, patch: Partial<Inclusion>) => {
     if (patch.id) setSelectedId(patch.id);
     const preserveFillIds = patch.fil_frac === undefined ? new Set<string>() : new Set([id]);
+    const preserveCenterIds = patch.center === undefined ? new Set<string>() : new Set([id]);
     update((current) => {
       const lattice = normalizeLattice(current.lattice);
       const normalizedPatch = patch.center && !patch.center_frac ? { ...patch, center_frac: cartesianToFrac(patch.center, lattice) } : patch;
@@ -109,7 +111,7 @@ export default function App() {
           return normalizedPatch.fil_frac === undefined ? merged : resizeInclusionToFillFraction(merged, lattice, normalizedPatch.fil_frac);
         })
       };
-    }, preserveFillIds);
+    }, preserveFillIds, preserveCenterIds);
   };
   const addInclusion = (shape: ShapeType) => update((current) => {
     const id = `inc${current.inclusions.length + 1}`;
